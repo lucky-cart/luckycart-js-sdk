@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+  <title>SDK test Page</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <script src='../sdk/src/luckycart.js'></script>
+</head>
+<body>
+  <style>
+    html, body {
+      margin:0;
+     padding:0;
+    }
+    .header img, .products img, .footer img {
+      width:100%;
+    }
+    #luckygameContainer {
+      text-align: center;
+    }
+
+    .actions {
+      position:fixed;
+      bottom: 0;
+      padding: 10px;
+      background-color: white;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0px 6px 15px 5px #696969;
+    }
+    .actions button {
+      background-color: #87b233;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      margin: 0 10px;
+      cursor: pointer;
+      color: white;
+    }
+  </style>
+  <div class="header">
+    <img src="assets/header.png">
+  </div>
+  <div id="products"></div>
+  <div id="luckygameContainer"></div>
+  <div class="products">
+    <img src="assets/products.png">
+  </div>
+  <div id="footer"></div>
+  <div class="footer">
+    <img src="assets/footer.png">
+  </div>
+  <div class="actions">
+    <button onclick="javascript: getBannerDetails1()">getBannerDetails products</button>
+    <button onclick="javascript: getBannerDetails2()">getBannerDetails footer</button>
+    <button onclick="javascript: getSlideShow()">getSlideShow</button>
+    <button onclick="javascript: sendCart()">sendCart</button>
+    <button onclick="javascript: getGameImage()">getGameImage</button>
+    <button onclick="javascript: showGamePlugin()">showGamePlugin</button>
+    <button onclick="javascript: showGamePopin()">showGamePopin</button>
+  </div>
+
+  <div id="luckygameContainer"></div>
+  <script type="text/javascript">
+    const luckycartSDK = new LuckyCart('ugjArgGw', 'p#91J#i&00!QkdSPjgGNJq', {
+      subset: 'mobile',
+    });
+    luckycartSDK.setTest(true);
+    luckycartSDK.setShopper('customer1234');
+
+    window.getSlideShow = async () => {
+      console.time('getSlideShow');
+
+      const slider = await luckycartSDK.getSlideShow('homepage', 'banner', null, {store: 150});
+
+      slider.addEventListener('bannerDisplay', (event) => {
+        console.log('track display', event.detail);
+      });
+      slider.addEventListener('bannerClick', (event) => {
+        console.log('track click', event.detail);
+      });
+      document.querySelector('#products').append(slider);
+      
+      console.timeEnd('getSlideShow');
+    }
+
+    window.getBannerDetails1 = async () => {
+      console.time('getBannerDetails1');
+      if (window.getBannerDetails1Launched) {
+        return;
+      } 
+      window.getBannerDetails1Launched = true;
+      luckycartSDK.getBannerDetails('categories' , 'banner', '200', {store: 150}).then((bannerData) => {
+        if (!bannerData) return;
+        document.querySelector('#products').append(bannerData.HTMLElement);
+        bannerData.HTMLElement.addEventListener('bannerDisplay', (event) => {
+          console.log('track display', event.detail);
+        });
+        bannerData.HTMLElement.addEventListener('bannerClick', (event) => {
+          console.log('track click', event.detail);
+        });
+        console.timeEnd('getBannerDetails1');
+      });
+    };
+    window.getBannerDetails2 = async () => {
+      if (window.getBannerDetails2Launched) {
+        return;
+      } 
+      window.getBannerDetails2Launched = true;
+      luckycartSDK.getBannerDetails('homepage' , 'banner', null, {store: 150}).then((bannerData) => {
+        if (!bannerData) return;
+        document.querySelector('#footer').append(bannerData.HTMLElement);
+        bannerData.HTMLElement.addEventListener('bannerDisplay', (event) => {
+          console.log('track display', event);
+        });
+        bannerData.HTMLElement.addEventListener('bannerClick', (event) => {
+          console.log('track click', event);
+        });
+      });
+    }
+
+    
+    const data = {
+      cartId: parseInt(Math.random()*1000000).toString(),
+      customerId: parseInt(Math.random()*1000000).toString(),
+      ttc: 100,
+      game: 'v2',
+      products: [
+        {id: 12345, ttc: 10, qty: 10, start: new Date()}
+      ]
+    };
+    window.sendCart = async () => {
+      if (window.sendCartLaunched) {
+        return;
+      } 
+      window.sendCartLaunched = true;
+      const response = await luckycartSDK.sendCart(data);
+      alert('Cart sent');
+      return response;
+    };
+    window.getGameImage = async () => {
+      if (window.getGameImageLaunched) {
+        return;
+      } 
+      window.getGameImageLaunched = true;
+      const image = await luckycartSDK.getGameImage(data.cartId);
+      if (image) {
+        document.querySelector('#luckygameContainer').append(image);
+      }
+    };
+    window.showGamePopin = async () => {
+      luckycartSDK.showGamePopin(data.cartId);
+    };
+    window.showGamePlugin = async () => {
+      if (window.showGamePluginLaunched) {
+        return;
+      } 
+      window.showGamePluginLaunched = true;
+      const gameData = await luckycartSDK.showGamePluginV2(data.cartId);
+      if (!gameData) {
+        return;
+      }
+      const container = document.querySelector('#luckygameContainer');
+      container.append(gameData.HTMLElement);
+    };
+
+  </script>
+</body>
+</html>
