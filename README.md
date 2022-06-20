@@ -1,37 +1,41 @@
-#Lucky Cart SDK
-##Overview
+# Lucky Cart SDK
+
+## Overview
+
 This library is an helper to connect your website to the Lucky Cart APIs.
 It simplify the integration process and allow a quick setup of the Lucky Cart solution.
 
-##Getting Started
-###Installation
+## Getting Started
+
+### Installation
+
 To use the SDK in the browser, simply add the following script tag to your HTML pages:
 ```html
 <script src="https://integration.luckycart.com/sdk/luckycart.js"></script>
 ```
-###Initialization
+### Initialization
 You must first instanciate the library with the permissions provided by our intetgration team:
 ```js
 const luckycartSDK = new LuckyCart('AUTH_KEY', 'AUTH_SECRET');
 ```
 
-##Usage
-###Set the current shopper
+## Usage
+### Set the current shopper
 If the shopper is connected on the website, you can log it in too in the SDK. Shopper Id is required to send carts information at checkout.
 ```js
 luckycartSDK.setShopper(datalayer.user_id);
 ```
 
-###Set the current device
+### Set the current device
 If the shopper is curently browsing the website on a mobile device, you can set it in the SDK to display mobile media.
 The available entries are: desktop | mobile | webmobile
 ```js
 luckycartSDK.setSubset('webmobile');
 ```
 
-###Display banners 
+### Display banners 
 Banners can be displayed on a various list of pages. the SDK need the type of page the shopper is currently browsing to load the associated banners. It also need the format of the banner you want to display (header, banner, footer, etc...)
-####Exemples
+#### Exemples
 Homepage:
 ```js
 const bannerData = await luckycartSDK.getBannerDetails('homepage' , 'header');
@@ -48,7 +52,7 @@ You can also indicate some extra parameters to allow a finest selection of which
 const bannerData = await luckycartSDK.getBannerDetails('promotion' , 'footer', null, { shopId: 1480 });
 ```
 
-####Return details
+#### Return details
 If a promotion is available for the current call, the return of the function contains the informations of the banner to display:
 ```js
 console.log(bannerData);
@@ -74,7 +78,7 @@ The HTMLElement is a built-in element ready to include in the page. Basicaly, yo
 ```js
 document.querySelector('#root').append(bannerData.HTMLElement);
 ```
-####Events handling
+#### Events handling
 The HTMLElement includes custom events to capture user interactions with the banner. The event thrown are:
 - bannerDisplay
 - bannerClick
@@ -92,7 +96,7 @@ bannerData.HTMLElement.addEventListener('bannerClick', (event) => {
 
 The event catched has a property detail where you can get the original bannerData informations.
 
-###Send the current transaction 
+### Send the current transaction 
 When the shopper does a payment, you need some data to Lucky Cart services. Then, the Lucky Cart API will analyse the transaction and will determine if a game can be generated.
 A JSON must be passed to the function with all the transaction's properties. 
 
@@ -115,13 +119,13 @@ const data = {
 await luckycartSDK.sendCart(data);
 ```
 
-###Display the games
+### Display the games
 
 Various display types are available: 
 - The game included directly to the transaction page, the shopper doesn't have to leave your site to interact with it.
 - An access to play the game on a page hosted externaly.
 
-####Game included to the page
+#### Game included to the page
 
 You can include the interactive game directly in the body of the page.
 You need to give the transaction identifier to retrieve the associated games. The function also need to know where the game will be appended. A query selector is needed to append the game.
@@ -130,7 +134,7 @@ You need to give the transaction identifier to retrieve the associated games. Th
 luckycartSDK.showGamePlugin(data.cartId, '#luckygameContainer');
 ```
 
-####Game access via an image in a popin
+#### Game access via an image in a popin
 
 The access to the game can also be done by displaying a popin which include a image linked to an external play page. The function display a popin containing an image and a link redirecting the shopper on an external play page associated to the current game.
 
@@ -138,7 +142,7 @@ The access to the game can also be done by displaying a popin which include a im
 luckycartSDK.showGamePopin(data.cartId);
 ```
 
-####Game access via an image
+#### Game access via an image
 
 Finally, The access to the game can also be done by directly displaying an image linked to an external play page where the integrator wants. The DOM element returned by the function contains the link to redirect the shopper on. You just need to insert the element where you want.
 
