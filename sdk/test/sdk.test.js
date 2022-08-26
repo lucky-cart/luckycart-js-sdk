@@ -10,11 +10,7 @@ describe('LuckyCart SDK', () => {
   });
 
   it('should not init without api key', () => {
-    should(() => new LuckyCart()).throw('Missing auth parameters');
-  });
-
-  it('should not init without api secret', () => {
-    should(() => new LuckyCart('apikey')).throw('Missing auth parameters');
+    should(() => new LuckyCart()).throw('Missing auth key parameter');
   });
 
   it('should init', () => {
@@ -61,12 +57,5 @@ describe('LuckyCart SDK', () => {
   it('should get the device associated to the webmobile subset', () => {
     const luckycartSDK = initSDK({ subset: 'webmobile' });
     should(luckycartSDK.getDevice()).be.equal('mobile');
-  });
-
-  it('should sign data correctly', () => {
-    const luckycartSDK = initSDK();
-    const ts = '1644854141';
-    const signed = luckycartSDK.signData(ts, SECRET_KEY).toString();
-    should(signed).be.equal('f729f85782c90d0f4b9eb1c3842df11c12dd4925a39fbb433813fed2efc65b68');
   });
 });

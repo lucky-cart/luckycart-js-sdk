@@ -1,12 +1,32 @@
 class LuckyClient {
-  static get SDKUrl() {
-    return 'https://integration.luckycart.com/js-sdk/sdk/dist/luckycart.min.js';
+  constructor(key = 'key', secret = 'secret') {
+    if (window.LuckyCartInstance !== undefined) {
+      this.isLoaded = true;
+      return;
+    }
+    this.SDK = new LuckyCart(key, secret);
+
+    this.isLoaded = true;
+    const integrationMode = this.SDK.isIntegrationMode();
+    if (integrationMode) {
+      this.key = integrationMode ? 'TEST_KEY' : key;
+      this.SDK = new LuckyCart(this.key, secret);
+      this.SDK.log('⚠️ Integration Mode active ⚠️️')
+    }
+
+    this.key = key;
+
+    window.LuckyCartInstance = this;
   }
 
-  constructor(key = 'key', secret = 'secret') {
-   this.key = key;
-   this.secret = secret;
-   this.isLoaded = false;
+  /**
+   * Set integration mode
+   *
+   * @param {boolean} integrationMode
+   * @param {number|undefined} ttl TTL in seconds
+   */
+   setIntegrationMode(integrationMode = true, ttl = undefined) {
+    this.SDK.setIntegrationMode(integrationMode, ttl);
   }
 
   /**
@@ -70,8 +90,8 @@ class LuckyClient {
    * @returns {object}
    */
   getBannerParams() {
-    return { 
-      store: this.getStoreId() 
+    return {
+      store: this.getStoreId()
     };
   }
 
@@ -83,21 +103,6 @@ class LuckyClient {
     return false;
   }
 
-  /**
-   * Load a script
-   * @param {string} source 
-   * @returns {Promise}
-   */
-  loadScript(source) {
-    return new Promise(function (resolve, reject) {
-      const script = document.createElement('script');
-      script.src = source;
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-  }
-  
   /**
    * Return a normalized name of the current page
    * @returns {String} Current page
@@ -125,7 +130,7 @@ class LuckyClient {
 
   /**
    * Homepage
-   * @returns 
+   * @returns
    */
   async homepage() {
     const slider = await this.SDK.getSlideShow('homepage', 'banner-format', null, this.getBannerParams());
@@ -134,7 +139,7 @@ class LuckyClient {
 
   /**
    * Category page
-   * @returns 
+   * @returns
    */
   async category() {
     const categoryId = this.getCategoryId();
@@ -150,7 +155,7 @@ class LuckyClient {
 
   /**
    * promotions pages
-   * @returns 
+   * @returns
    */
   async promotions() {
     const bannerData = await this.SDK.getBannerDetails('promotions' , 'banner-format', categoryId, this.getBannerParams());
@@ -162,7 +167,7 @@ class LuckyClient {
 
   /**
    * Shop page
-   * @returns 
+   * @returns
    */
   async shop() {
     const shopId = this.getShopId();
@@ -175,7 +180,7 @@ class LuckyClient {
 
   /**
    * Search page
-   * @returns 
+   * @returns
    */
   async search() {
     const categoryId = null; // retrieve the searched category
@@ -191,7 +196,7 @@ class LuckyClient {
 
   /**
    * Payment page
-   * @returns 
+   * @returns
    */
   async payment() {
     await this.SDK.showGamePlugin(null, 'selector');

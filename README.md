@@ -1,14 +1,10 @@
 # Lucky Cart SDK
-
 ## Overview
-
 This library is an helper to connect your website to the Lucky Cart APIs.
 It simplify the integration process and allow a quick setup of the Lucky Cart solution.
 
 ## Getting Started
-
 ### Installation
-
 To use the SDK in the browser, simply add the following script tag to your HTML pages:
 ```html
 <script src="https://integration.luckycart.com/sdk/luckycart.js"></script>
@@ -22,6 +18,7 @@ const luckycartSDK = new LuckyCart('AUTH_KEY', 'AUTH_SECRET');
 ## Usage
 ### Set the current shopper
 If the shopper is connected on the website, you can log it in too in the SDK. Shopper Id is required to send carts information at checkout.
+**Warning**: You need to have an automaton attached to the specified shopperUid.
 ```js
 luckycartSDK.setShopper(datalayer.user_id);
 ```
@@ -33,14 +30,14 @@ The available entries are: desktop | mobile | webmobile
 luckycartSDK.setSubset('webmobile');
 ```
 
-### Display banners 
+### Display banners
 Banners can be displayed on a various list of pages. the SDK need the type of page the shopper is currently browsing to load the associated banners. It also need the format of the banner you want to display (header, banner, footer, etc...)
 #### Exemples
 Homepage:
 ```js
 const bannerData = await luckycartSDK.getBannerDetails('homepage' , 'header');
 ```
- 
+
 Some types of pages may need to be clearly identified, categories page for exemple. You can give the page identifier to the SDK:
 
 ```js
@@ -84,7 +81,7 @@ The HTMLElement includes custom events to capture user interactions with the ban
 - bannerClick
 
 ```js
-const bannerData = await luckycartSDK.getBannerDetails('promotion' , 'footer', 
+const bannerData = await luckycartSDK.getBannerDetails('promotion' , 'footer',
 document.querySelector('#root').append(bannerData.HTMLElement);
 bannerData.HTMLElement.addEventListener('bannerDisplay', (event) => {
   myTracking('track display', event);
@@ -96,9 +93,9 @@ bannerData.HTMLElement.addEventListener('bannerClick', (event) => {
 
 The event catched has a property detail where you can get the original bannerData informations.
 
-### Send the current transaction 
+### Send the current transaction
 When the shopper does a payment, you need some data to Lucky Cart services. Then, the Lucky Cart API will analyse the transaction and will determine if a game can be generated.
-A JSON must be passed to the function with all the transaction's properties. 
+A JSON must be passed to the function with all the transaction's properties.
 
 Some are essentials:
 - cart identifier
@@ -121,7 +118,7 @@ await luckycartSDK.sendCart(data);
 
 ### Display the games
 
-Various display types are available: 
+Various display types are available:
 - The game included directly to the transaction page, the shopper doesn't have to leave your site to interact with it.
 - An access to play the game on a page hosted externaly.
 
@@ -152,3 +149,67 @@ if (image) {
   document.querySelector('#root').append(image);
 }
 ```
+
+## Experience Engine Usage
+### How to send events
+The method `sendShopperEvent` will perform a `POST` request with an `eventName` and a payload.
+
+#### Example of event sent:
+```json
+{
+    "shopperId": "customer1234",
+    "siteKey": "ugjArgGw",
+    "eventName": "CartValidated",
+    "payload": {
+        "cartId": "492559",
+        "customerId": "290907",
+        "totaltAti": 100,
+        "game": "v2",
+        "products": [
+            {
+                "id": 12345,
+                "ttc": 10,
+                "qty": 10,
+                "start": "2022-08-22T12:47:21.704Z"
+            }
+        ]
+    }
+}
+```
+The event might trigger an automaton. It will create an experience if the transition is valid.
+​
+### How to get experiences
+The method `getShopperExperiences` will perform a `GET` request with a mandatory `experienceType`.
+​
+#### Example of experience to get:
+```json
+[
+  {
+    [
+      {
+      "key": "customer1234#ugjArgGw#game#2022-08-22",
+      "data": {
+          "summary": {
+              "eventId": "96adb164-5aba-4a29-862c-f0f58f388c1d",
+              "shopperId": "customer1234",
+              "siteKey": "ugjArgGw",
+              "experienceId": "c1eceba3-12c0-4c28-8c95-a033b4829bda",
+              "type": "game",
+              "happenedAt": "1661155541729000"
+          },
+          "payload": {
+              "gameType": "wheel",
+              "probability": 0.1,
+              "prizeAmount": false
+          }
+        }
+      }
+    ]
+  }
+]
+```
+
+## TODOs
+
+- Remove XPN_ from cartUID in URL to get gameV2
+  - `showGamePluginXPN`

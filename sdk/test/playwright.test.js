@@ -301,6 +301,7 @@ describe('E2e tests', () => {
         ticket: 'PTUK-EUUD-GBJH-YVEB',
         image: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/image`,
         url: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/url`,
+        cart: 'test0001',
       };
 
       await page.route(`${hosts.api}/cart/ticket`, (route) => {
@@ -327,6 +328,7 @@ describe('E2e tests', () => {
         ticket: 'PTUK-EUUD-GBJH-YVEB',
         image: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/image`,
         url: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/url`,
+        cart: 'test0001',
       };
 
       await page.route(`${hosts.api}/cart/ticket`, (route) => {
@@ -354,6 +356,7 @@ describe('E2e tests', () => {
         ticket: 'PTUK-EUUD-GBJH-YVEB',
         image: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/image`,
         url: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/url`,
+        cart: 'test0001'
       };
 
       await page.route(`${hosts.api}/cart/ticket`, (route) => {
@@ -391,6 +394,7 @@ describe('E2e tests', () => {
         ticket: 'PTUK-EUUD-GBJH-YVEB',
         image: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/image`,
         url: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/url`,
+        cart: 'test0001',
       };
 
       await page.route(`${hosts.api}/ugjArgGw/game/test0001/desktop`, (route) => {
@@ -409,6 +413,7 @@ describe('E2e tests', () => {
               game_url: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/url`,
               image_url: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/image`,
               ticket: 'PTUK-EUUD-GBJH-YVEB',
+              cart: 'test0001'
             }),
           });
         });
@@ -482,15 +487,21 @@ describe('E2e tests', () => {
     });
 
     it('should show the game plugin', async () => {
-      await page.route(`${hosts.api}/token/plugin`, (route) => {
+      await page.route(`${hosts.api}/ugjArgGw/game/test0001`, (route) => {
         route.fulfill({
           body: JSON.stringify({
-            ticket: 'YAMZ-WJCL-JKME-TRVU',
+            game_url: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/url`,
+            image_url: `${hosts.api}/replacement/PTUK-EUUD-GBJH-YVEB/desktop/image`,
+            ticket: 'PTUK-EUUD-GBJH-YVEB',
+            cart: 'test0001'
           }),
         });
       });
       await page.evaluate(async () => {
-        await luckycartSDK.showGamePluginV2('test0001', '#root');
+        luckycartSDK.setShopper('435686');
+        const gameData = await luckycartSDK.showGamePluginV2('test0001');
+        const container = document.querySelector('#root');
+        container.append(gameData.HTMLElement);
       });
       const gameLocator = page.locator('iframe');
       await gameLocator.waitFor();

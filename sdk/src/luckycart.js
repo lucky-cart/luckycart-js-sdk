@@ -43,7 +43,7 @@ class LuckyCart {
   }
 
   static get authorizedSubsets() {
-    return [ 'desktop', 'mobile', 'webmobile' ];
+    return ['desktop', 'mobile', 'webmobile'];
   }
 
   static get bannerClass() {
@@ -84,7 +84,6 @@ class LuckyCart {
     if (options && options.subset) {
       this.setSubset(options.subset);
     }
-    this.loadLibrary('luckycart', 'css');
   }
 
   getImagesHost() {
@@ -93,6 +92,14 @@ class LuckyCart {
 
   getApiHost() {
     return this.options.apiHost || 'https://api.luckycart.com';
+  }
+
+  getShopperEventApiHost() {
+    return 'https://shopper-events.luckycart.com/v1';
+  }
+
+  getShopperExperienceApiHost() {
+    return 'https://shopper-experience.luckycart.com/v1';
   }
 
   getExperienceHost() {
@@ -139,6 +146,7 @@ class LuckyCart {
    * @param {string} shopperId Shopper identifier
    */
   setShopper(shopperId) {
+    this.log(`Shopper ID: ${shopperId}`);
     this.shopper = shopperId;
   }
 
@@ -241,7 +249,9 @@ class LuckyCart {
    * @param {string} str Text to log
    */
   logError(str) {
-    this.clog(str, 'red');
+    if (this.isTest()) {
+      this.clog(str, 'red');
+    }
   }
 
   /**
@@ -350,7 +360,7 @@ class LuckyCart {
           const event = new CustomEvent('bannerDisplay', { detail: eventDetails });
           parent.dispatchEvent(event);
         }
-      }), { threshold: [ 0 ] });
+      }), { threshold: [0] });
       displayObserver.observe(image);
     }
 
@@ -374,6 +384,7 @@ class LuckyCart {
 
     const img = new Image();
     img.src = bannerDetails.image;
+    img.alt = bannerDetails.name;
 
     link.append(img);
     banner.append(link);
@@ -440,7 +451,7 @@ class LuckyCart {
    * @param {string} format Format of the banner
    * @param {string} pageId Identifier of the current page
    * @param {object} options External options
-   * @returns {Promise>[BannerDetails]>} Promotions details
+   * @returns {Promise<BannerDetails[]>} Promotions details
    */
   async getPromotionList(pageType, format, pageId, options = {}) {
     const rawPromotions = await this.requestBannerAPI(pageType, format, pageId, { ...options, allPromotions: true });
@@ -472,11 +483,11 @@ class LuckyCart {
    * @param {string} pageType Type of the current page
    * @param {string} format Format of the banner
    * @param {string} pageId Identifier of the current page
-   * @param {SliderOptions} sliderOptions Slider options
    * @param {object} options External options
+   * @param {SliderOptions} sliderOptions Slider options
    * @returns {Promise<HTMLElement>} Slider HTMLElement
    */
-  async getSlideShow(pageType, format, pageId, sliderOptions = {}, options = {}) {
+  async getSlideShow(pageType, format, pageId, options = {}, sliderOptions = {}) {
     this.log(`getSlideShow: fetching pageType(${pageType}) - format(${format}) - pageId(${pageId})`);
     const promotions = await this.getPromotionList(pageType, format, pageId, options);
     if (promotions.length === 0) {
@@ -559,6 +570,29 @@ class LuckyCart {
   }
 
   /**
+   * Make a request to Shopper Event API
+   * @param {string} route Route to load
+   * @param {object} body Body of the request
+   * @returns {Promise<void>} Api response
+   */
+  async requestShopperEventAPI(route, data) {
+    const options = {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+    };
+
+    const response = await fetch(`${this.getShopperEventApiHost()}/${route}`, options);
+    if (response.status >= 400) {
+      throw new Error(response.error);
+    }
+    return response;
+  }
+
+  /**
    * Send the cart data to the Lucky Cart API
    * @param {object} data JSON data of the transaction
    * @returns {Promise<object>} Transaction result data
@@ -580,8 +614,71 @@ class LuckyCart {
       ticket: response.ticket,
       image: response[`intro${device.charAt(0).toUpperCase() + device.slice(1)}`],
       url: response[`${device}Url`],
+      cart: data.cartId,
     };
+    this.gameData = gameData;
     return gameData;
+  }
+
+  /**
+   * Send the shopper event to the Shopper Event API
+   * @param {string} eventName the name of the event
+   * @param {object} payload JSON data of the transaction
+   * @returns {Promise<void>} Response API
+   */
+  async sendShopperEvent(eventName, payload) {
+    const event = {
+      shopperId: this.getShopper(),
+      siteKey: this.auth.key,
+      eventName,
+      payload,
+    };
+
+    this.log('sendShopperEvent: sending event');
+    this.log('Shopper event ', event);
+    return this.requestShopperEventAPI('event', event)
+      .catch((err) => {
+        this.logError(`sendShopperEvent: ${err.message}`);
+      });
+  }
+
+  /**
+   * Make a request to Shopper Experience API
+   * @param {object} options Options
+   * @returns {Promise<object>} Api response
+   */
+  async requestShopperExperienceAPI(options) {
+    const urlParams = this.formatURLParams(options);
+    const url = `${this.getShopperExperienceApiHost()}/experiences?${urlParams}`;
+    const result = await fetch(url);
+    const response = await result.json();
+    if (result.status >= 400) {
+      this.logError(`requestShopperExperienceAPI: ${response.message}`);
+      return null;
+    }
+    return response;
+  }
+
+  /**
+   * get experiences from the Shopper Experience API
+   * @param {string} [experienceType] the type of the experience (mandatory param)
+   * @returns {Promise<object>} Response API
+   */
+  async getShopperExperiences(experienceType) {
+    const params = {
+      shopperId: this.getShopper(),
+      siteKey: this.auth.key,
+      experienceType,
+    };
+
+    const response = await this.requestShopperExperienceAPI(params)
+      .catch((err) => {
+        this.logError(`getShopperExperiences: ${err.message}`);
+      });
+
+    this.log('getShopperExperiences - retreive experiences : ', response);
+
+    return response;
   }
 
   /**
@@ -672,6 +769,7 @@ class LuckyCart {
     link.className = 'lc-game-image';
     const img = new Image();
     img.src = gameData.image;
+    img.alt = 'Jeu Lucky cart';
     link.append(img);
     return link;
   }
@@ -719,15 +817,66 @@ class LuckyCart {
   /**
    * Show the game (V2) plugin directly in the current page
    * @param {string} cartId Identifier of the transaction
+   * @param {string} ticketCode Identifier of the ticket if needed
    * @returns {Promise<HTMLElement>} Slider HTMLElement
    */
-  async showGamePluginV2(cartId) {
+  async showGamePluginV2(cartId, ticketCode = null) {
     let { gameData } = this;
     if (!(gameData && gameData.ticket)) {
       this.gameData = null;
       gameData = await this.getGameData(cartId, true);
     }
     if (!(gameData && gameData.ticket)) {
+      this.log('showGamePlugin: no game available');
+      return null;
+    }
+
+    const requestedTicketCode = ticketCode || gameData.ticket;
+
+    const luckygame = document.createElement('div');
+    luckygame.id = 'luckygame-v2';
+
+    const iframeResizer = document.createElement('div');
+    iframeResizer.className = 'lc-iframe-resizer';
+    luckygame.append(iframeResizer);
+
+    const iframe = document.createElement('iframe');
+    iframe.className = 'lc-iframe';
+    iframe.src = `${this.getExperienceHost()}/?siteKey=${this.auth.key}&customerUid=${this.getShopper()}&cartUid=${gameData.cart}&ticketCode=${requestedTicketCode}`;
+    iframeResizer.append(iframe);
+
+    return {
+      ...gameData,
+      HTMLElement: luckygame,
+    };
+  }
+
+  async getExperienceWithPolling(experienceType) {
+    let retryNumber = 5;
+    return new Promise((resolve) => {
+      const interval = setInterval(async () => {
+        const gameExperiences = await this.getShopperExperiences(experienceType);
+        this.log('List of experiences: ', gameExperiences);
+        retryNumber -= 1;
+
+        if ((Array.isArray(gameExperiences) && gameExperiences.length > 0) || retryNumber === 0) {
+          clearInterval(interval);
+          resolve(gameExperiences);
+        }
+      }, 500);
+    });
+  }
+
+  /**
+   * Show the game (V2) plugin directly in the current page
+   * No ticket code needed. It uses the experience created by the automaton.
+   * @param {string} cartId Identifier of the transaction
+   * @returns {Promise<HTMLElement>} Slider HTMLElement
+   */
+  async showGamePluginXPN(cartId) {
+    const gameExperiences = await this.getExperienceWithPolling('game');
+
+    if (!Array.isArray(gameExperiences) || gameExperiences.length === 0) {
       this.log('showGamePlugin: no game available');
       return null;
     }
@@ -741,13 +890,34 @@ class LuckyCart {
 
     const iframe = document.createElement('iframe');
     iframe.className = 'lc-iframe';
-    iframe.src = `${this.getExperienceHost()}/?siteKey=${this.auth.key}&customerUid=${this.getShopper()}&cartUid=${gameData.cart}`;
+    // @TODO REMOVE XPN_ FROM CARTUID please
+    const prefixedCartId = `xpn_${cartId}`;
+    iframe.src = `${this.getExperienceHost()}/?siteKey=${this.auth.key}&customerUid=${this.getShopper()}&cartUid=${prefixedCartId}`;
     iframeResizer.append(iframe);
 
-    return {
-      ...gameData,
-      HTMLElement: luckygame,
-    };
+    return luckygame;
+  }
+
+  /**
+   * Open a popin with the Lucky cart experience
+   * @param {string} cartId Identifier of the transaction
+   */
+  async openExperiencePopin(cartId) {
+    const gameData = await this.showGamePluginV2(cartId);
+    if (gameData) {
+      this.openModal(gameData.HTMLElement);
+    }
+  }
+
+  /**
+   * Open a popin with the Lucky cart experience using XPN
+   * @param {string} cartId Identifier of the transaction
+   */
+  async openGameV2PopinXPN(cartId) {
+    const HTMLElement = await this.showGamePluginXPN(cartId);
+    if (HTMLElement) {
+      this.openModal(HTMLElement);
+    }
   }
 }
 
